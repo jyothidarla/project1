@@ -1,0 +1,66 @@
+pipeline{
+    agent any
+    
+     environment {
+        APP_NAME = "mypp"
+        RELEASE = "1.0.0"
+        ECR_REGISTRY = "721346825573.dkr.ecr.us-east-1.amazonaws.com"
+        ECR_REPOSITORY = "thej"
+        IMAGE_NAME = "${ECR_REGISTRY}" + "/" + "${APP_NAME}"
+        IMAGE_TAG = "${RELEASE}-${BUILD_NUMBER}"
+    }
+
+    stages{
+        stage("Clear Workspace"){
+            steps{
+                cleanWs()
+            }
+        }
+        stage("Download Code"){
+            steps{
+                git 'https://github.com/thej950/project-1.git'
+            }
+        }
+        stage("Test Application"){
+            steps{
+                    sh 'mvn test'
+            }
+        }
+        stage("Build Application Code"){
+            steps{
+                sh 'mvn package'
+            }
+        }
+        stage("Build Docker image"){
+            steps{
+                sh "sudo docker build -t $APP_NAME ."
+            }
+        }
+        stage("Push Docker image To ECR"){
+            steps{
+                script{
+                    sh "aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin ${ECR_REGISTRY}"
+                    sh "docker tag ${IMAGE_NAME}:${IMAGE_TAG} ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
+                    sh "docker push ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
+                }
+            }
+        }
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
