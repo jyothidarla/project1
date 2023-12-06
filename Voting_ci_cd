@@ -1,0 +1,51 @@
+The application is in REACT JS so, we deploy into NODE JS through Dockerfile using jenkins pipeline.
+> Launch EC2 INSTANCE t2.large. and setup jenkins @vote is name of jenkins host.
+> install docker and add into jenkins group......sudo usermod -aG docker jenkins
+> newgrp <group_name> -------newgrp docker or sg docker
+> docker file
+
+
+pipeline
+{
+    agent any
+    stages
+    {
+        stage('continuous download')
+        {
+            steps
+            {
+                git 'https://github.com/sudarshansw7/AP-Voting-Survey-Application.git'
+            }
+        }
+        stage('create dockerfile')
+        {
+            steps
+            {
+                script
+                {
+                    sh '''cat>dockerfile<<EOF
+
+FROM node:14-alpine
+WORKDIR /app
+COPY package.json .
+RUN npm install
+COPY . .
+RUN npm run build
+EXPOSE 3000
+CMD ["npm","start"]
+
+EOF'''
+                    
+                }
+            }
+        }
+        stage('build image and push')
+        {
+            steps
+            {
+                sh 'docker build -t jyothiuma/myapp .'
+                sh 'docker push jyothiuma/myapp'
+            }
+        }
+    }
+}
