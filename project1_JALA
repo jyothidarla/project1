@@ -1,0 +1,74 @@
+pipeline
+{
+    agent any
+    
+    environment{
+        APP_NAME = "app"
+        ECR_REGISTRY = "768828179344.dkr.ecr.us-east-1.amazonaws.com"
+        ECR_REPO = "myapplication"
+        IMAGE_NAME = "${APP_NAME}"
+        BUILD_VERSION = getVersion()
+    }
+    stages
+    {
+        stage('cont download')
+        {
+            steps
+            {
+                git 'https://github.com/sudarshansw7/mymaven.git'
+            }
+        }
+        stage('cont build')
+        {
+            steps
+            {
+                sh 'mvn package'
+            }
+        }
+        stage('create dockerfile')
+        {
+            steps
+            {
+                sh 'cp /var/lib/jenkins/workspace/project-3/webapp/target/webapp.war /var/lib/jenkins/workspace/project-3' 
+
+            sh '''cat>dockerfile<<EOF
+                
+FROM tomee
+MAINTAINER sudarshan
+COPY *.war /usr/local/tomee/webapps/testapp.war
+                
+EOF
+    '''
+
+            }
+        }
+        stage('build docker image')
+        {
+            steps
+            {
+                sh 'docker build -t $APP_NAME:$BUILD_VERSION .'
+            }
+        }
+        stage('push docker image into ECR')
+        {
+            steps
+            {
+                script {
+                
+                sh 'aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin ${ECR_REGISTRY}'
+                
+                sh 'docker build -t $APP_NAME:$BUILD_VERSION .'
+                
+                sh "docker tag $APP_NAME:$BUILD_VERSION $ECR_REGISTRY/$ECR_REPO:$BUILD_VERSION"
+                
+                sh "docker push $ECR_REGISTRY/$ECR_REPO:$BUILD_VERSION"
+                }
+            }
+        }
+    }
+}
+
+    def getVersion() {
+        def buildNumber = env.BUILD_NUMBER ?: '0'
+        return "1.0.${buildNumber}"
+    }
