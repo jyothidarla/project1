@@ -1,3 +1,5 @@
+Build image with versions:
+
 pipeline
 {
     agent any
